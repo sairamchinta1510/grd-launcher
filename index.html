@@ -530,7 +530,81 @@
       closeSheet();
     }
 
-    // ── Placeholder — filled in by later tasks ─────────────
+    // ── Add / Edit form sheet ───────────────────────────────
+
+    function renderEmojiPicker(selected) {
+      document.getElementById('emoji-picker').innerHTML = EMOJI_OPTIONS.map(e => `
+        <button class="emoji-option${e === selected ? ' selected' : ''}"
+                onclick="selectEmoji(this)">${escapeHtml(e)}</button>
+      `).join('');
+    }
+
+    function selectEmoji(el) {
+      document.querySelectorAll('.emoji-option').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function getSelectedEmoji() {
+      const sel = document.querySelector('.emoji-option.selected');
+      return sel ? sel.textContent : '🖥️';
+    }
+
+    function openAddForm() {
+      editingMachineId = null;
+      document.getElementById('form-title').textContent = 'Add Machine';
+      document.getElementById('form-name').value  = '';
+      document.getElementById('form-url').value   = '';
+      document.getElementById('delete-btn').style.display = 'none';
+      renderEmojiPicker('🖥️');
+      openSheet('form-sheet');
+    }
+
+    function openEditForm(machineId) {
+      const machine = loadMachines().find(m => m.id === machineId);
+      if (!machine) return;
+      editingMachineId = machineId;
+      document.getElementById('form-title').textContent = 'Edit Machine';
+      document.getElementById('form-name').value  = machine.name;
+      document.getElementById('form-url').value   = machine.grdUrl;
+      document.getElementById('delete-btn').style.display = 'block';
+      renderEmojiPicker(machine.emoji);
+      openSheet('form-sheet');
+    }
+
+    function saveForm() {
+      const name = document.getElementById('form-name').value.trim();
+      const url  = document.getElementById('form-url').value.trim();
+      const emoji = getSelectedEmoji();
+
+      if (!name) {
+        alert('Please enter a machine name.');
+        return;
+      }
+      if (!url.startsWith('https://remotedesktop.google.com')) {
+        alert('URL must start with https://remotedesktop.google.com');
+        return;
+      }
+
+      if (editingMachineId) {
+        updateMachine(editingMachineId, name, emoji, url);
+      } else {
+        addMachine(name, emoji, url);
+      }
+
+      editingMachineId = null;
+      closeSheet();
+      renderHome();
+    }
+
+    function confirmDelete() {
+      if (!editingMachineId) return;
+      if (confirm('Delete this machine? This cannot be undone.')) {
+        deleteMachine(editingMachineId);
+        editingMachineId = null;
+        closeSheet();
+        renderHome();
+      }
+    }
   </script>
 </body>
 </html>
