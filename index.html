@@ -448,6 +448,43 @@
       console.log(`\nTests: ${passed} passed, ${failed} failed`);
     }
 
+    // ── Home screen ────────────────────────────────────────
+
+    function renderHome() {
+      const machines = loadMachines();
+      const home = document.getElementById('home');
+
+      if (machines.length === 0) {
+        home.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🖥️</div>
+            <p>No machines yet</p>
+            <p class="sub">Tap + Add Machine to get started</p>
+          </div>`;
+        return;
+      }
+
+      home.innerHTML = machines.map(m => `
+        <div class="machine-card" data-id="${escapeHtml(m.id)}">
+          <div class="machine-icon">${m.emoji}</div>
+          <div class="machine-name">${escapeHtml(m.name)}</div>
+          <button class="connect-btn" onclick="openConnectSheet('${escapeHtml(m.id)}')">Connect</button>
+        </div>
+      `).join('');
+
+      // Long-press → edit (600 ms threshold)
+      home.querySelectorAll('.machine-card').forEach(card => {
+        let timer;
+        const start = () => { timer = setTimeout(() => openEditForm(card.dataset.id), 600); };
+        const cancel = () => clearTimeout(timer);
+        card.addEventListener('touchstart', start,  { passive: true });
+        card.addEventListener('touchend',   cancel, { passive: true });
+        card.addEventListener('touchmove',  cancel, { passive: true });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', renderHome);
+
     // ── Placeholder — filled in by later tasks ─────────────
   </script>
 </body>
