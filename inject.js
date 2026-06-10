@@ -266,7 +266,7 @@
     const startCount  = ts.startTouches ? ts.startTouches.length : 0;
     const isTap       = duration < 250 && ts.maxTravel < 8;
 
-    if (isTap) {
+    if (isTap && !toolbarOpen) {
       if      (startCount === 1) sendClick();
       else if (startCount === 2) sendRightClick();
     }
@@ -353,6 +353,7 @@
   function closeToolbar() {
     toolbarOpen = false;
     toolbar.classList.remove('open');
+    hiddenInput.blur();
   }
 
   // Swipe toolbar down to close
