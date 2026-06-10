@@ -119,7 +119,161 @@
   }
   updateDot();
 
-  // ── Placeholder: touch handlers ─────────────────────────
+  // ── Helpers ─────────────────────────────────────────────
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function pinchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function applyZoom() {
+    canvas.style.transformOrigin = '0 0';
+    canvas.style.transform = `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`;
+  }
+
+  function moveCursor(dx, dy) {
+    const r = canvas.getBoundingClientRect();
+    cur.x = clamp(cur.x + dx * sensitivity, 0, r.width  / zoomLevel);
+    cur.y = clamp(cur.y + dy * sensitivity, 0, r.height / zoomLevel);
+    updateDot();
+    const r2 = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true, cancelable: true,
+      clientX: r2.left + cur.x * zoomLevel,
+      clientY: r2.top  + cur.y * zoomLevel,
+      buttons: 0,
+    }));
+  }
+
+  function sendMouseEvent(type, button, buttons) {
+    const r = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new MouseEvent(type, {
+      bubbles: true, cancelable: true,
+      clientX: r.left + cur.x * zoomLevel,
+      clientY: r.top  + cur.y * zoomLevel,
+      button, buttons,
+    }));
+  }
+
+  function sendClick() {
+    sendMouseEvent('mousedown', 0, 1);
+    sendMouseEvent('mouseup',   0, 0);
+    sendMouseEvent('click',     0, 0);
+  }
+
+  function sendRightClick() {
+    sendMouseEvent('mousedown',   2, 2);
+    sendMouseEvent('mouseup',     2, 0);
+    sendMouseEvent('contextmenu', 2, 0);
+  }
+
+  function sendKey(key, mods) {
+    const opts = Object.assign({ key, bubbles: true, cancelable: true }, mods || {});
+    canvas.dispatchEvent(new KeyboardEvent('keydown', opts));
+    canvas.dispatchEvent(new KeyboardEvent('keyup',   opts));
+  }
+
+  function sendScroll(deltaX, deltaY) {
+    const r = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new WheelEvent('wheel', {
+      bubbles: true, cancelable: true,
+      clientX: r.left + cur.x * zoomLevel,
+      clientY: r.top  + cur.y * zoomLevel,
+      deltaX, deltaY, deltaMode: 0,
+    }));
+  }
+
+  // ── Touch state ──────────────────────────────────────────
+  const ts = {
+    startTouches:  null,
+    lastTouches:   null,
+    startTime:     0,
+    maxTravel:     0,
+    lastPinchDist: null,
+    edgeSwipe:     false,
+  };
+
+  // ── Touch handlers ───────────────────────────────────────
+  overlay.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    ts.startTouches  = Array.from(e.touches).map(t => ({ x: t.clientX, y: t.clientY }));
+    ts.lastTouches   = ts.startTouches.slice();
+    ts.startTime     = Date.now();
+    ts.maxTravel     = 0;
+    ts.lastPinchDist = e.touches.length === 2 ? pinchDist(e.touches) : null;
+    ts.edgeSwipe     = e.touches.length === 1 && e.touches[0].clientY > window.innerHeight - 20;
+  }, { passive: false });
+
+  overlay.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    const touches = Array.from(e.touches);
+    const n = touches.length;
+
+    if (n === 1) {
+      const prev = ts.lastTouches[0];
+      const curr = { x: touches[0].clientX, y: touches[0].clientY };
+      const dx = curr.x - prev.x;
+      const dy = curr.y - prev.y;
+      ts.maxTravel += Math.hypot(dx, dy);
+
+      if (ts.edgeSwipe && dy < -30) {
+        openToolbar();
+        ts.edgeSwipe = false;
+      } else if (!ts.edgeSwipe) {
+        if (zoomLevel > 1.05) {
+          panX += dx / zoomLevel;
+          panY += dy / zoomLevel;
+          applyZoom();
+        } else {
+          moveCursor(dx, dy);
+        }
+      }
+      ts.lastTouches = [curr];
+
+    } else if (n === 2) {
+      const prev0 = ts.lastTouches[0];
+      const prev1 = ts.lastTouches[1] || ts.lastTouches[0];
+      const curr0 = { x: touches[0].clientX, y: touches[0].clientY };
+      const curr1 = { x: touches[1].clientX, y: touches[1].clientY };
+      const newDist = pinchDist(e.touches);
+
+      if (ts.lastPinchDist && Math.abs(newDist - ts.lastPinchDist) > 3) {
+        zoomLevel = clamp(zoomLevel * (newDist / ts.lastPinchDist), 0.5, 3);
+        if (zoomLevel <= 1.05) { zoomLevel = 1; panX = 0; panY = 0; }
+        applyZoom();
+      } else {
+        const centerDx = ((curr0.x + curr1.x) - (prev0.x + (prev1 ? prev1.x : prev0.x))) / 2;
+        const centerDy = ((curr0.y + curr1.y) - (prev0.y + (prev1 ? prev1.y : prev0.y))) / 2;
+        sendScroll(-centerDx * 4, -centerDy * 4);
+      }
+      ts.lastPinchDist = newDist;
+      ts.lastTouches = [curr0, curr1];
+
+    } else if (n === 3) {
+      const prevCY = ts.lastTouches.slice(0, 3).reduce((s, t) => s + t.y, 0) / Math.min(ts.lastTouches.length, 3);
+      const currCY = touches.reduce((s, t) => s + t.clientY, 0) / 3;
+      if (prevCY - currCY > 30) openToolbar();
+      ts.lastTouches = touches.map(t => ({ x: t.clientX, y: t.clientY }));
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    const duration    = Date.now() - ts.startTime;
+    const startCount  = ts.startTouches ? ts.startTouches.length : 0;
+    const isTap       = duration < 250 && ts.maxTravel < 8;
+
+    if (isTap) {
+      if      (startCount === 1) sendClick();
+      else if (startCount === 2) sendRightClick();
+    }
+
+    ts.startTouches = null;
+    ts.lastTouches  = null;
+    ts.lastPinchDist = null;
+  }, { passive: false });
   // ── Placeholder: toolbar ────────────────────────────────
 
   console.log('[GRD Touch] Activated. Three-finger swipe up or swipe from bottom edge to open toolbar.');
