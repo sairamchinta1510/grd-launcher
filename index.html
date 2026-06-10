@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GRD Launcher</title>
+  <style>
+    :root {
+      --bg:       #1a1a2e;
+      --card:     #16213e;
+      --border:   #0f3460;
+      --accent:   #e94560;
+      --accent2:  #0f3460;
+      --text:     #ffffff;
+      --muted:    #888888;
+      --success:  #4ade80;
+      --radius:   12px;
+      --sheet-radius: 20px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      padding: 20px 20px 8px;
+      padding-top: max(20px, env(safe-area-inset-top));
+    }
+    .app-header h1 { font-size: 24px; font-weight: 700; }
+    .app-header p  { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+    /* ── Machine list ── */
+    #home {
+      flex: 1;
+      padding: 12px 16px;
+      overflow-y: auto;
+    }
+
+    .machine-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .machine-icon {
+      font-size: 28px;
+      width: 44px;
+      height: 44px;
+      background: var(--accent2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .machine-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .connect-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .connect-btn:active { opacity: 0.8; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 8px;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 48px; }
+    .empty-state p { font-size: 16px; }
+    .empty-state .sub { font-size: 13px; }
+
+    /* ── Footer ── */
+    .app-footer {
+      padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .add-btn {
+      width: 100%;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 52px;
+    }
+    .add-btn:active { opacity: 0.7; }
+
+    /* ── Overlay ── */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 10;
+    }
+    #overlay.visible { display: block; }
+
+    /* ── Bottom sheets ── */
+    .sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+      padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+      z-index: 20;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
+    .sheet.open { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: #444;
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sheet-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── Preset tiles ── */
+    #connect-presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .preset-tile {
+      background: var(--accent2);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 12px 6px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-tile.selected { border-color: var(--accent); }
+    .preset-tile:active { opacity: 0.8; }
+    .preset-emoji { font-size: 22px; }
+    .preset-label { font-size: 12px; font-weight: 600; }
+    .preset-res   { font-size: 10px; color: var(--muted); }
+
+    /* ── Launch button ── */
+    .launch-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 52px;
+    }
+    .launch-btn:active { opacity: 0.8; }
+
+    /* ── Form sheet ── */
+    .form-group { margin-bottom: 18px; }
+    .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      padding: 12px;
+      font-family: inherit;
+    }
+    .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-textarea { min-height: 80px; resize: none; }
+
+    /* ── Emoji picker ── */
+    #emoji-picker {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .emoji-option {
+      flex-shrink: 0;
+      font-size: 24px;
+      width: 44px;
+      height: 44px;
+      background: var(--bg);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .emoji-option.selected { border-color: var(--accent); }
+
+    /* ── Form action buttons ── */
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-save {
+      flex: 1;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .btn-cancel {
+      flex: 1;
+      background: var(--bg);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .btn-delete {
+      width: 100%;
+      background: transparent;
+      color: #e94560;
+      border: 1px solid #e94560;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      min-height: 48px;
+      display: none;
+    }
+    .btn-save:active, .btn-cancel:active, .btn-delete:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>My Machines</h1>
+    <p>Tap to connect</p>
+  </header>
+
+  <main id="home"></main>
+
+  <footer class="app-footer">
+    <button class="add-btn" onclick="openAddForm()">+ Add Machine</button>
+  </footer>
+
+  <!-- Overlay (tap to close sheet) -->
+  <div id="overlay" onclick="closeSheet()"></div>
+
+  <!-- Connect sheet -->
+  <div id="connect-sheet" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="connect-machine-name"></div>
+    <div class="sheet-subtitle">Choose a display preset as a reminder when configuring GRD</div>
+    <div id="connect-presets"></div>
+    <button class="launch-btn" onclick="launchRemoteDesktop()">🚀 Launch Remote Desktop</button>
+  </div>
+
+  <!-- Add / Edit form sheet -->
+  <div id="form-sheet" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="form-title">Add Machine</div>
+
+    <div class="form-group" style="margin-top:16px">
+      <label class="form-label" for="form-name">Machine name</label>
+      <input id="form-name" class="form-input" type="text" placeholder="e.g. Work PC" maxlength="40">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div id="emoji-picker"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="form-url">Google Remote Desktop URL</label>
+      <textarea id="form-url" class="form-textarea" placeholder="https://remotedesktop.google.com/access#..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeSheet()">Cancel</button>
+      <button class="btn-save" onclick="saveForm()">Save</button>
+    </div>
+    <button id="delete-btn" class="btn-delete" onclick="confirmDelete()">🗑 Delete Machine</button>
+  </div>
+
+  <script>
+    // ── Constants ──────────────────────────────────────────
+    const STORAGE_KEY = 'grd_machines';
+    const PRESETS = [
+      { id: 'phone',  emoji: '📱', label: 'Phone',   res: '720×1280'  },
+      { id: 'tablet', emoji: '📟', label: 'Tablet',  res: '1280×800'  },
+      { id: 'full',   emoji: '🖥️', label: 'Full HD', res: '1920×1080' },
+    ];
+    const EMOJI_OPTIONS = ['🖥️','💻','🖱️','⌨️','🏠','🏢','🔧','⚙️','📡','🌐','🔒','💼','🎮','📺','🖨️','💾','📱','🔌','🛠️','⭐'];
+
+    // ── Placeholder — filled in by later tasks ─────────────
+  </script>
+</body>
+</html>
