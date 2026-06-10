@@ -466,7 +466,7 @@
 
       home.innerHTML = machines.map(m => `
         <div class="machine-card" data-id="${escapeHtml(m.id)}">
-          <div class="machine-icon">${m.emoji}</div>
+          <div class="machine-icon">${escapeHtml(m.emoji)}</div>
           <div class="machine-name">${escapeHtml(m.name)}</div>
           <button class="connect-btn" onclick="openConnectSheet('${escapeHtml(m.id)}')">Connect</button>
         </div>
