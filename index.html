@@ -361,6 +361,92 @@
     ];
     const EMOJI_OPTIONS = ['🖥️','💻','🖱️','⌨️','🏠','🏢','🔧','⚙️','📡','🌐','🔒','💼','🎮','📺','🖨️','💾','📱','🔌','🛠️','⭐'];
 
+    // ── Data layer ─────────────────────────────────────────
+
+    function generateId() {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    }
+
+    function loadMachines() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveMachines(machines) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(machines));
+    }
+
+    function addMachine(name, emoji, grdUrl) {
+      const machines = loadMachines();
+      const machine = { id: generateId(), name, emoji, grdUrl };
+      machines.push(machine);
+      saveMachines(machines);
+      return machine;
+    }
+
+    function updateMachine(id, name, emoji, grdUrl) {
+      const machines = loadMachines();
+      const idx = machines.findIndex(m => m.id === id);
+      if (idx === -1) return null;
+      machines[idx] = { ...machines[idx], name, emoji, grdUrl };
+      saveMachines(machines);
+      return machines[idx];
+    }
+
+    function deleteMachine(id) {
+      saveMachines(loadMachines().filter(m => m.id !== id));
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Inline test runner (call runTests() in DevTools console) ──
+    function runTests() {
+      localStorage.removeItem(STORAGE_KEY);
+      let passed = 0, failed = 0;
+      function assert(desc, val) {
+        if (val) { console.log('✅', desc); passed++; }
+        else      { console.error('❌', desc); failed++; }
+      }
+
+      assert('loadMachines returns [] when empty',
+        JSON.stringify(loadMachines()) === '[]');
+
+      const m = addMachine('Test PC', '🖥️', 'https://remotedesktop.google.com/access#abc');
+      assert('addMachine returns object with id',  !!m.id);
+      assert('addMachine stores correct name',     m.name === 'Test PC');
+      assert('addMachine stores correct emoji',    m.emoji === '🖥️');
+      assert('addMachine stores correct grdUrl',   m.grdUrl === 'https://remotedesktop.google.com/access#abc');
+      assert('loadMachines returns 1 after add',   loadMachines().length === 1);
+
+      const updated = updateMachine(m.id, 'Updated', '💻', 'https://remotedesktop.google.com/access#xyz');
+      assert('updateMachine returns updated object', updated !== null);
+      assert('updateMachine updates name',           updated.name === 'Updated');
+      assert('updateMachine updates emoji',          updated.emoji === '💻');
+      assert('updateMachine updates grdUrl',         updated.grdUrl.includes('#xyz'));
+      assert('id is preserved after update',         updated.id === m.id);
+
+      assert('updateMachine returns null for unknown id',
+        updateMachine('nonexistent', 'x', 'x', 'x') === null);
+
+      deleteMachine(m.id);
+      assert('deleteMachine removes the machine', loadMachines().length === 0);
+
+      localStorage.removeItem(STORAGE_KEY);
+      console.log(`\nTests: ${passed} passed, ${failed} failed`);
+    }
+
     // ── Placeholder — filled in by later tasks ─────────────
   </script>
 </body>
