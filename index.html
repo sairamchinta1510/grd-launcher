@@ -485,6 +485,51 @@
 
     document.addEventListener('DOMContentLoaded', renderHome);
 
+    // ── Sheets ─────────────────────────────────────────────
+
+    let activeSheetMachineId = null;
+    let editingMachineId     = null;
+
+    function openSheet(id) {
+      document.getElementById('overlay').classList.add('visible');
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeSheet() {
+      document.getElementById('overlay').classList.remove('visible');
+      document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+      activeSheetMachineId = null;
+    }
+
+    // ── Connect sheet ───────────────────────────────────────
+
+    function openConnectSheet(machineId) {
+      const machine = loadMachines().find(m => m.id === machineId);
+      if (!machine) return;
+      activeSheetMachineId = machineId;
+      document.getElementById('connect-machine-name').textContent = machine.name;
+      document.getElementById('connect-presets').innerHTML = PRESETS.map((p, i) => `
+        <div class="preset-tile${i === 0 ? ' selected' : ''}" data-preset="${p.id}" onclick="selectPreset(this)">
+          <span class="preset-emoji">${p.emoji}</span>
+          <span class="preset-label">${p.label}</span>
+          <span class="preset-res">${p.res}</span>
+        </div>
+      `).join('');
+      openSheet('connect-sheet');
+    }
+
+    function selectPreset(el) {
+      document.querySelectorAll('.preset-tile').forEach(t => t.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function launchRemoteDesktop() {
+      const machine = loadMachines().find(m => m.id === activeSheetMachineId);
+      if (!machine) return;
+      window.open(machine.grdUrl, '_blank');
+      closeSheet();
+    }
+
     // ── Placeholder — filled in by later tasks ─────────────
   </script>
 </body>
