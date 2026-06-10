@@ -275,10 +275,121 @@
     ts.lastTouches  = null;
     ts.lastPinchDist = null;
   }, { passive: false });
-  // ── Toolbar stub (replaced by Task 3) ───────────────────
-  function openToolbar() {}
+  // ── Hidden keyboard input ────────────────────────────────
+  const hiddenInput = document.createElement('input');
+  hiddenInput.id = 'grd-hidden-input';
+  hiddenInput.setAttribute('autocorrect',    'off');
+  hiddenInput.setAttribute('autocapitalize', 'off');
+  hiddenInput.setAttribute('autocomplete',   'off');
+  hiddenInput.setAttribute('spellcheck',     'false');
+  hiddenInput.type = 'text';
+  document.body.appendChild(hiddenInput);
 
-  // ── Placeholder: toolbar ────────────────────────────────
+  hiddenInput.addEventListener('input', function () {
+    const val = hiddenInput.value;
+    for (const ch of val) sendKey(ch);
+    hiddenInput.value = '';
+  });
+
+  // ── Toolbar ──────────────────────────────────────────────
+  const toolbar = document.createElement('div');
+  toolbar.id = 'grd-toolbar';
+  toolbar.innerHTML = `
+    <div id="grd-toolbar-handle"></div>
+    <div id="grd-toolbar-buttons">
+      <button class="grd-btn grd-btn-primary" id="grd-kb-btn">⌨️ Keyboard</button>
+      <button class="grd-btn" data-key="c"     data-ctrl="1">Ctrl+C</button>
+      <button class="grd-btn" data-key="v"     data-ctrl="1">Ctrl+V</button>
+      <button class="grd-btn" data-key="z"     data-ctrl="1">Ctrl+Z</button>
+      <button class="grd-btn" data-key="a"     data-ctrl="1">Ctrl+A</button>
+      <button class="grd-btn" data-key="Escape"              >Esc</button>
+      <button class="grd-btn" data-key="Tab"                 >Tab</button>
+      <button class="grd-btn" data-key="Meta"                >Win</button>
+      <button class="grd-btn" data-key="Tab"  data-alt="1"   >Alt+Tab</button>
+    </div>
+    <div id="grd-sensitivity-row">
+      <span>🐢</span>
+      <input type="range" id="grd-sens-slider" min="0.5" max="3" step="0.1" value="${sensitivity}">
+      <span>🐇</span>
+    </div>
+    <div style="text-align:right;margin-top:10px">
+      <button class="grd-btn" id="grd-close-btn">✕ Close Touch Controls</button>
+    </div>
+  `;
+  document.body.appendChild(toolbar);
+
+  // Wire shortcut buttons
+  toolbar.querySelectorAll('.grd-btn[data-key]').forEach(function (btn) {
+    btn.addEventListener('touchend', function (e) {
+      e.stopPropagation();
+      sendKey(btn.dataset.key, {
+        ctrlKey: btn.dataset.ctrl === '1',
+        altKey:  btn.dataset.alt  === '1',
+      });
+    });
+  });
+
+  // Wire keyboard button
+  document.getElementById('grd-kb-btn').addEventListener('touchend', function (e) {
+    e.stopPropagation();
+    hiddenInput.focus();
+  });
+
+  // Wire sensitivity slider
+  document.getElementById('grd-sens-slider').addEventListener('input', function () {
+    sensitivity = parseFloat(this.value);
+    localStorage.setItem('grd_sensitivity', String(sensitivity));
+  });
+
+  // ── Toolbar open / close ─────────────────────────────────
+  let toolbarOpen = false;
+
+  function openToolbar() {
+    if (toolbarOpen) return;
+    toolbarOpen = true;
+    toolbar.classList.add('open');
+  }
+
+  function closeToolbar() {
+    toolbarOpen = false;
+    toolbar.classList.remove('open');
+  }
+
+  // Swipe toolbar down to close
+  let tbDragStartY = null;
+  toolbar.addEventListener('touchstart', function (e) {
+    tbDragStartY = e.touches[0].clientY;
+  }, { passive: true });
+  toolbar.addEventListener('touchmove', function (e) {
+    if (tbDragStartY !== null && e.touches[0].clientY - tbDragStartY > 40) {
+      closeToolbar();
+      tbDragStartY = null;
+    }
+  }, { passive: true });
+  toolbar.addEventListener('touchend', function () { tbDragStartY = null; }, { passive: true });
+
+  // Tap overlay outside toolbar to close toolbar
+  overlay.addEventListener('touchend', function () {
+    if (toolbarOpen) closeToolbar();
+  }, { passive: true });
+
+  // Wire close button — destroy entire overlay
+  document.getElementById('grd-close-btn').addEventListener('touchend', function (e) {
+    e.stopPropagation();
+    destroy();
+  });
+
+  // ── Destroy ──────────────────────────────────────────────
+  function destroy() {
+    overlay.remove();
+    dot.remove();
+    toolbar.remove();
+    hiddenInput.remove();
+    style.remove();
+    canvas.style.transform      = '';
+    canvas.style.transformOrigin = '';
+    console.log('[GRD Touch] Deactivated.');
+  }
 
   console.log('[GRD Touch] Activated. Three-finger swipe up or swipe from bottom edge to open toolbar.');
 }());
