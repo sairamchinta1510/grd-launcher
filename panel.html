@@ -214,6 +214,10 @@
         var el = document.getElementById('clip-copied');
         el.textContent = '✅ Copied! Switch to GRD and press Ctrl+V in the toolbar.';
         setTimeout(function () { el.textContent = ''; }, 3000);
+      }).catch(function () {
+        // Fallback: select textarea content so user can copy manually
+        document.getElementById('clip-text').select();
+        document.getElementById('clip-copied').textContent = 'Text selected — long-press to Copy';
       });
     }
   </script>
