@@ -491,6 +491,8 @@
     let editingMachineId     = null;
 
     function openSheet(id) {
+      // Close any open sheet first to prevent overlap
+      document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
       document.getElementById('overlay').classList.add('visible');
       document.getElementById(id).classList.add('open');
     }
@@ -580,8 +582,14 @@
         alert('Please enter a machine name.');
         return;
       }
-      if (!url.startsWith('https://remotedesktop.google.com')) {
-        alert('URL must start with https://remotedesktop.google.com');
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname !== 'remotedesktop.google.com') {
+          alert('URL must be from remotedesktop.google.com');
+          return;
+        }
+      } catch {
+        alert('Please enter a valid URL (https://remotedesktop.google.com/...)');
         return;
       }
 
