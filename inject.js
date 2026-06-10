@@ -22,7 +22,8 @@
   let zoomLevel    = 1;
   let panX         = 0;
   let panY         = 0;
-  let cur          = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+  const r0 = canvas.getBoundingClientRect();
+  let cur          = { x: r0.width / 2, y: r0.height / 2 };
 
   // ── Styles ──────────────────────────────────────────────
   const style = document.createElement('style');
