@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Touch Controls — GRD Launcher</title>
+  <style>
+    :root {
+      --bg:     #1a1a2e;
+      --card:   #16213e;
+      --border: #0f3460;
+      --accent: #e94560;
+      --text:   #ffffff;
+      --muted:  #888888;
+      --radius: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--accent); font-size: 15px; font-weight: 600;
+      background: none; border: none; cursor: pointer; padding: 0;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+    /* ── Section card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .card p  { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+
+    /* ── Bookmarklet ── */
+    .bookmarklet-code {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #79c0ff;
+      word-break: break-all;
+      margin-bottom: 12px;
+      user-select: all;
+      -webkit-user-select: all;
+    }
+    .steps { padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 2; }
+    .steps li b { color: var(--text); }
+
+    /* ── Clipboard helper ── */
+    textarea {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      padding: 12px;
+      font-family: inherit;
+      resize: none;
+      min-height: 100px;
+      margin-bottom: 10px;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-outline {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .copied-msg {
+      text-align: center;
+      color: #4ade80;
+      font-size: 13px;
+      height: 20px;
+      margin-top: 6px;
+    }
+
+    /* ── Gesture cheat sheet ── */
+    .gesture-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 14px;
+      align-items: start;
+    }
+    .gesture-icon {
+      font-size: 20px;
+      padding-top: 2px;
+    }
+    .gesture-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .gesture-desc b { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <button class="back-btn" onclick="history.back()">‹ Back</button>
+  <h1>⚙️ Touch Controls</h1>
+  <p class="subtitle">Activate full-screen trackpad mode inside Google Remote Desktop</p>
+
+  <!-- Section 1: Bookmarklet setup -->
+  <div class="card">
+    <h2>📌 Step 1 — Add the Bookmarklet to Safari</h2>
+    <p>Tap <b>Copy Bookmarklet</b>, then follow the steps below to save it as a Safari bookmark.</p>
+
+    <div class="bookmarklet-code" id="bm-code">javascript:(function(){var s=document.createElement('script');s.src='https://sairamchinta1510.github.io/grd-launcher/inject.js?_='+Date.now();document.head.appendChild(s);})();</div>
+
+    <button class="btn" id="copy-bm-btn" onclick="copyBookmarklet()">📋 Copy Bookmarklet</button>
+    <div class="copied-msg" id="bm-copied"></div>
+
+    <br>
+    <ol class="steps">
+      <li>In Safari, <b>bookmark any page</b> (tap Share → Add Bookmark)</li>
+      <li>Open <b>Bookmarks</b> (book icon) → find the bookmark you just saved → tap <b>Edit</b></li>
+      <li>Clear the URL field and <b>paste</b> what you copied above</li>
+      <li>Rename it <b>"GRD Touch"</b> → tap Done</li>
+      <li>Next time you're on <b>remotedesktop.google.com</b> and connected to a machine, tap this bookmark</li>
+    </ol>
+  </div>
+
+  <!-- Section 2: Clipboard helper -->
+  <div class="card">
+    <h2>📝 Text → Clipboard</h2>
+    <p>Type or paste text here, copy it, then switch to GRD and press <b>Ctrl+V</b> (via the toolbar) to paste on the remote PC.</p>
+    <textarea id="clip-text" placeholder="Type something to send to your remote PC..."></textarea>
+    <button class="btn" onclick="copyClipboard()">📋 Copy to Clipboard</button>
+    <div class="copied-msg" id="clip-copied"></div>
+  </div>
+
+  <!-- Section 3: Gesture reference -->
+  <div class="card">
+    <h2>👆 Gesture Reference</h2>
+    <br>
+    <div class="gesture-grid">
+      <div class="gesture-icon">☝️</div>
+      <div class="gesture-desc"><b>Drag</b> — move mouse cursor (relative, like a trackpad)</div>
+
+      <div class="gesture-icon">👆</div>
+      <div class="gesture-desc"><b>Tap</b> — left click at cursor position</div>
+
+      <div class="gesture-icon">✌️</div>
+      <div class="gesture-desc"><b>Two-finger tap</b> — right click</div>
+
+      <div class="gesture-icon">✌️</div>
+      <div class="gesture-desc"><b>Two-finger drag</b> — scroll</div>
+
+      <div class="gesture-icon">🤏</div>
+      <div class="gesture-desc"><b>Pinch</b> — zoom remote desktop in/out (0.5× – 3×)</div>
+
+      <div class="gesture-icon">🖐️</div>
+      <div class="gesture-desc"><b>Three-finger swipe up</b> — open toolbar</div>
+
+      <div class="gesture-icon">⬆️</div>
+      <div class="gesture-desc"><b>Swipe from bottom edge</b> — open toolbar</div>
+
+      <div class="gesture-icon">⬇️</div>
+      <div class="gesture-desc"><b>Swipe toolbar down</b> — close toolbar</div>
+    </div>
+  </div>
+
+  <script>
+    const BOOKMARKLET = document.getElementById('bm-code').textContent.trim();
+
+    function copyBookmarklet() {
+      navigator.clipboard.writeText(BOOKMARKLET).then(function () {
+        var el = document.getElementById('bm-copied');
+        el.textContent = '✅ Copied!';
+        setTimeout(function () { el.textContent = ''; }, 2500);
+      }).catch(function () {
+        // Fallback: select the text so user can copy manually
+        var range = document.createRange();
+        range.selectNodeContents(document.getElementById('bm-code'));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.getElementById('bm-copied').textContent = 'Text selected — long-press to Copy';
+      });
+    }
+
+    function copyClipboard() {
+      var text = document.getElementById('clip-text').value;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(function () {
+        var el = document.getElementById('clip-copied');
+        el.textContent = '✅ Copied! Switch to GRD and press Ctrl+V in the toolbar.';
+        setTimeout(function () { el.textContent = ''; }, 3000);
+      });
+    }
+  </script>
+</body>
+</html>
