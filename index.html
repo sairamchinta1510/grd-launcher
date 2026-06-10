@@ -24,9 +24,53 @@
       font-family: system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
+      min-height: 100vh;
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
+    }
+
+    /* ── Responsive container ── */
+    .app-header,
+    #home,
+    .app-footer {
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* On wider screens, center the full layout */
+    @media (min-width: 640px) {
+      body {
+        align-items: center;
+        background: #111122;
+      }
+      .app-header,
+      #home,
+      .app-footer {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+      #home {
+        padding-top: 16px;
+        padding-bottom: 16px;
+      }
+      /* Center the sheet to content width on wider screens */
+      .sheet {
+        left: 50% !important;
+        transform: translateX(-50%) translateY(100%) !important;
+        max-width: 600px !important;
+        border-radius: var(--sheet-radius) !important;
+        bottom: 24px !important;
+      }
+      .sheet.open {
+        transform: translateX(-50%) translateY(0) !important;
+      }
+      #overlay {
+        background: rgba(0,0,0,0.5);
+      }
     }
 
     /* ── Header ── */
@@ -145,10 +189,15 @@
       z-index: 20;
       transform: translateY(100%);
       transition: transform 0.3s ease;
+      max-height: 90vh;
       max-height: 90dvh;
       overflow-y: auto;
+      pointer-events: none;
     }
-    .sheet.open { transform: translateY(0); }
+    .sheet.open {
+      transform: translateY(0);
+      pointer-events: auto;
+    }
 
     .sheet-handle {
       width: 40px;
@@ -370,16 +419,25 @@
       return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
     }
 
+    let _memFallback = null; // in-memory store when localStorage is unavailable
+
+    function saveMachines(machines) {
+      _memFallback = machines;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(machines));
+      } catch {
+        // localStorage blocked (e.g. iOS file://) — using in-memory store.
+        // Data will be lost on page close. Serve via http:// for persistence.
+      }
+    }
+
     function loadMachines() {
+      if (_memFallback !== null) return [..._memFallback];
       try {
         return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       } catch {
         return [];
       }
-    }
-
-    function saveMachines(machines) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(machines));
     }
 
     function addMachine(name, emoji, grdUrl) {
