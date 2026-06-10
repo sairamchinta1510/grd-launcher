@@ -248,6 +248,7 @@
         const centerDy = ((curr0.y + curr1.y) - (prev0.y + (prev1 ? prev1.y : prev0.y))) / 2;
         sendScroll(-centerDx * 4, -centerDy * 4);
       }
+      ts.maxTravel += Math.hypot(curr0.x - prev0.x, curr0.y - prev0.y);
       ts.lastPinchDist = newDist;
       ts.lastTouches = [curr0, curr1];
 
@@ -274,6 +275,9 @@
     ts.lastTouches  = null;
     ts.lastPinchDist = null;
   }, { passive: false });
+  // ── Toolbar stub (replaced by Task 3) ───────────────────
+  function openToolbar() {}
+
   // ── Placeholder: toolbar ────────────────────────────────
 
   console.log('[GRD Touch] Activated. Three-finger swipe up or swipe from bottom edge to open toolbar.');
